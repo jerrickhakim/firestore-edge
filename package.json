@@ -1,5 +1,5 @@
 {
-  "name": "firestore-edge",
+  "name": "@jerrickhakim/firestore-edge",
   "version": "1.0.0",
   "description": "Lightweight Firestore client using REST API with service account authentication. Designed for edge runtimes and workflow environments.",
   "main": "dist/index.js",
@@ -34,11 +34,11 @@
     "workflow",
     "serverless"
   ],
-  "author": "",
+  "author": "jerrickhakim",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/jerrickhakim/firestore-edge.git"
   },
   "engines": {
     "node": ">=18.0.0"
