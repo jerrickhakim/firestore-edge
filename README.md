@@ -16,15 +16,15 @@ A lightweight Firestore client using the REST API with service account authentic
 ## Installation
 
 ```bash
-npm install @jerrickhakim/firestore-edge
+npm install @jerrick/firestore-edge
 ```
 
 ```bash
-pnpm add @jerrickhakim/firestore-edge
+pnpm add @jerrick/firestore-edge
 ```
 
 ```bash
-yarn add @jerrickhakim/firestore-edge
+yarn add @jerrick/firestore-edge
 ```
 
 ## Setup
@@ -51,7 +51,7 @@ FIREBASE_UNIVERSE_DOMAIN=googleapis.com
 ## Quick Start
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 // Get a document
 const docRef = db.collection("users").doc("user-123");
@@ -70,7 +70,7 @@ if (snapshot.exists) {
 #### Create a document with auto-generated ID
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const collectionRef = db.collection("users");
 const newDocRef = await collectionRef.add({
@@ -85,7 +85,7 @@ console.log("Created document with ID:", newDocRef.id);
 #### Create a document with specific ID
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 await docRef.create({
@@ -98,7 +98,7 @@ await docRef.create({
 #### Set a document (create or overwrite)
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 
@@ -122,7 +122,7 @@ await docRef.set(
 #### Get a single document
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 const snapshot = await docRef.get();
@@ -140,7 +140,7 @@ if (snapshot.exists) {
 #### Get multiple documents
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const docRef1 = db.collection("users").doc("user-123");
 const docRef2 = db.collection("users").doc("user-456");
@@ -158,7 +158,7 @@ snapshots.forEach((snapshot) => {
 #### List documents in a collection
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const collectionRef = db.collection("users");
 const documentRefs = await collectionRef.listDocuments();
@@ -176,7 +176,7 @@ for (const docRef of documentRefs) {
 #### Update specific fields
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 await docRef.update({
@@ -190,7 +190,7 @@ await docRef.update({
 #### Delete a document
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 await docRef.delete();
@@ -203,7 +203,7 @@ await docRef.delete();
 #### Simple where clause
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const query = db.collection("users").where("status", "==", "active");
 
@@ -216,7 +216,7 @@ snapshot.forEach((doc) => {
 #### Multiple conditions
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const query = db.collection("users").where("age", ">", 18).where("age", "<", 65).where("status", "==", "active");
 
@@ -226,7 +226,7 @@ const snapshot = await query.get();
 #### Order by
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 // Ascending (default)
 const query1 = db.collection("users").orderBy("createdAt");
@@ -240,7 +240,7 @@ const snapshot = await query2.get();
 #### Limit results
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const query = db.collection("users").where("status", "==", "active").orderBy("createdAt", "desc").limit(10);
 
@@ -250,7 +250,7 @@ const snapshot = await query.get();
 #### Limit to last N results
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const query = db.collection("users").orderBy("createdAt").limitToLast(5);
 
@@ -260,7 +260,7 @@ const snapshot = await query.get();
 #### Offset and pagination
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const query = db.collection("users").orderBy("createdAt").limit(10).offset(20); // Skip first 20 results
 
@@ -270,7 +270,7 @@ const snapshot = await query.get();
 #### Cursor-based pagination
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 // Start at a specific value
 const query1 = db.collection("users").orderBy("age").startAt(25);
@@ -290,7 +290,7 @@ const snapshot = await query4.get();
 #### Select specific fields
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const query = db.collection("users").select("name", "email");
 
@@ -304,7 +304,7 @@ snapshot.forEach((doc) => {
 #### Count documents
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const query = db.collection("users").where("status", "==", "active");
 
@@ -330,7 +330,7 @@ Supported comparison operators:
 #### Array queries
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 // Array contains
 const query1 = db.collection("posts").where("tags", "array-contains", "javascript");
@@ -352,7 +352,7 @@ const query4 = db.collection("users").where("role", "not-in", ["banned", "suspen
 #### Server Timestamp
 
 ```typescript
-import { db, FieldValue } from "@jerrickhakim/firestore-edge";
+import { db, FieldValue } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("events").doc("event-123");
 await docRef.set({
@@ -364,7 +364,7 @@ await docRef.set({
 #### Delete Field
 
 ```typescript
-import { db, FieldValue } from "@jerrickhakim/firestore-edge";
+import { db, FieldValue } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 await docRef.update({
@@ -375,7 +375,7 @@ await docRef.update({
 #### Increment
 
 ```typescript
-import { db, FieldValue } from "@jerrickhakim/firestore-edge";
+import { db, FieldValue } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 await docRef.update({
@@ -386,7 +386,7 @@ await docRef.update({
 #### Array Union
 
 ```typescript
-import { db, FieldValue } from "@jerrickhakim/firestore-edge";
+import { db, FieldValue } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 await docRef.update({
@@ -397,7 +397,7 @@ await docRef.update({
 #### Array Remove
 
 ```typescript
-import { db, FieldValue } from "@jerrickhakim/firestore-edge";
+import { db, FieldValue } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("users").doc("user-123");
 await docRef.update({
@@ -410,7 +410,7 @@ await docRef.update({
 Batch writes allow you to perform multiple write operations atomically.
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const batch = db.batch();
 
@@ -430,7 +430,7 @@ await batch.commit();
 #### Batch with Field Values
 
 ```typescript
-import { db, FieldValue } from "@jerrickhakim/firestore-edge";
+import { db, FieldValue } from "@jerrick/firestore-edge";
 
 const batch = db.batch();
 
@@ -449,7 +449,7 @@ await batch.commit();
 Transactions provide ACID guarantees for read-modify-write operations.
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 const userRef = db.collection("users").doc("user-123");
 
@@ -475,7 +475,7 @@ await db.runTransaction(async (transaction) => {
 Transactions automatically retry on conflicts. You can customize retry behavior:
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 await db.runTransaction(
   async (transaction) => {
@@ -492,7 +492,7 @@ await db.runTransaction(
 Query across all collections with the same ID, regardless of their parent path.
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 // Query all 'comments' collections across all documents
 const query = db.collectionGroup("comments").where("approved", "==", true).orderBy("createdAt", "desc").limit(10);
@@ -509,7 +509,7 @@ snapshot.forEach((doc) => {
 Access nested collections using document references.
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 // Get a subcollection
 const userRef = db.collection("users").doc("user-123");
@@ -533,7 +533,7 @@ const snapshot = await query.get();
 Work with Firestore timestamps.
 
 ```typescript
-import { db, Timestamp } from "@jerrickhakim/firestore-edge";
+import { db, Timestamp } from "@jerrick/firestore-edge";
 
 // Create timestamp from current time
 const now = Timestamp.now();
@@ -564,7 +564,7 @@ await docRef.set({
 Store and query geographic coordinates.
 
 ```typescript
-import { db, GeoPoint } from "@jerrickhakim/firestore-edge";
+import { db, GeoPoint } from "@jerrick/firestore-edge";
 
 const docRef = db.collection("locations").doc("location-123");
 await docRef.set({
@@ -583,7 +583,7 @@ console.log(point1.isEqual(point2)); // true
 Reference nested fields or document IDs in queries.
 
 ```typescript
-import { db, FieldPath } from "@jerrickhakim/firestore-edge";
+import { db, FieldPath } from "@jerrick/firestore-edge";
 
 // Query by document ID
 const query = db.collection("users").where(FieldPath.documentId(), "==", "user-123");
@@ -597,7 +597,7 @@ const nestedPath = new FieldPath("user", "profile", "name");
 Use TypeScript generics for type-safe document operations:
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 interface User {
   name: string;
@@ -621,7 +621,7 @@ if (snapshot.exists) {
 The library throws descriptive errors:
 
 ```typescript
-import { db } from "@jerrickhakim/firestore-edge";
+import { db } from "@jerrick/firestore-edge";
 
 try {
   const docRef = db.collection("users").doc("user-123");

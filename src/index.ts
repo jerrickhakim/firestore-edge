@@ -239,6 +239,25 @@ export class FieldValue {
 }
 
 /**
+ * AggregateField class for aggregate queries
+ */
+export class AggregateField {
+  private constructor(public aggregateType: "count" | "sum" | "avg", public fieldPath?: string) {}
+
+  static count(): AggregateField {
+    return new AggregateField("count");
+  }
+
+  static sum(field: string): AggregateField {
+    return new AggregateField("sum", field);
+  }
+
+  static average(field: string): AggregateField {
+    return new AggregateField("avg", field);
+  }
+}
+
+/**
  * Convert JavaScript values to Firestore field format
  */
 function toFirestoreValue(value: any): any {
@@ -912,6 +931,99 @@ async function queryCollectionGroup(collectionId: string, filters: any = {}) {
     });
 }
 
+/**
+ * Run aggregate query
+ */
+async function runAggregateQuery(collection: string, filters: any = {}, aggregations: any = {}) {
+  const accessToken = await getAccessToken();
+
+  // Parse the collection path to separate parent path from collection ID
+  const pathSegments = collection.split("/");
+  const collectionId = pathSegments[pathSegments.length - 1];
+  const parentPath = pathSegments.slice(0, -1).join("/");
+
+  // Build the URL with parent path if it exists
+  const baseUrl = `https://firestore.googleapis.com/v1/projects/${FIREBASE_PROJECT_ID}/databases/(default)/documents`;
+  const url = parentPath ? `${baseUrl}/${parentPath}:runAggregationQuery` : `${baseUrl}:runAggregationQuery`;
+
+  const structuredQuery: any = {
+    from: [{ collectionId: collectionId, allDescendants: filters.allDescendants || false }],
+  };
+
+  // Add where filters if provided
+  if (filters.where) {
+    structuredQuery.where = filters.where;
+  }
+
+  // Add orderBy if provided
+  if (filters.orderBy) {
+    structuredQuery.orderBy = filters.orderBy;
+  }
+
+  // Add limit if provided
+  if (filters.limit) {
+    structuredQuery.limit = filters.limit;
+  }
+
+  // Add offset if provided
+  if (filters.offset) {
+    structuredQuery.offset = filters.offset;
+  }
+
+  // Add startAt cursor if provided
+  if (filters.startAt) {
+    structuredQuery.startAt = filters.startAt;
+  }
+
+  // Add endAt cursor if provided
+  if (filters.endAt) {
+    structuredQuery.endAt = filters.endAt;
+  }
+
+  // Build aggregations
+  const aggregationsArray: any[] = [];
+  for (const [alias, aggregation] of Object.entries(aggregations)) {
+    const agg: any = { alias };
+    const aggField = aggregation as AggregateField;
+
+    if (aggField.aggregateType === "count") {
+      agg.count = {};
+    } else if (aggField.aggregateType === "sum") {
+      agg.sum = {
+        field: { fieldPath: aggField.fieldPath },
+      };
+    } else if (aggField.aggregateType === "avg") {
+      agg.avg = {
+        field: { fieldPath: aggField.fieldPath },
+      };
+    }
+
+    aggregationsArray.push(agg);
+  }
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      structuredAggregationQuery: {
+        structuredQuery,
+        aggregations: aggregationsArray,
+      },
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Failed to run aggregation query: ${error}`);
+  }
+
+  const results = await response.json();
+  return results;
+}
+
 // Firebase SDK-compatible types and classes
 
 export interface DocumentData {
@@ -964,6 +1076,18 @@ export interface TransactionOptions {
     retryTransaction?: string;
   };
   maxAttempts?: number;
+}
+
+export interface AggregateSpec {
+  [field: string]: AggregateField;
+}
+
+export interface AggregateQuerySnapshot {
+  query: AggregateQuery;
+  readTime: Timestamp;
+  data(): {
+    [field: string]: number;
+  };
 }
 
 /**
@@ -1589,6 +1713,10 @@ export class Query {
     return snapshot.size;
   }
 
+  aggregate(aggregateSpec: AggregateSpec): AggregateQuery {
+    return new AggregateQuery(this, aggregateSpec);
+  }
+
   protected clone(): Query {
     const query = new Query(this.collectionId, this._firestore);
     query.filters = [...this.filters];
@@ -1813,6 +1941,66 @@ export class CollectionGroup extends Query {
       forEach: (callback: (doc: QueryDocumentSnapshot) => void) => {
         docs.forEach(callback);
       },
+    };
+  }
+}
+
+/**
+ * AggregateQuery for aggregate operations (count, sum, avg)
+ */
+export class AggregateQuery {
+  constructor(private query: Query, private aggregateSpec: AggregateSpec) {}
+
+  async get(): Promise<AggregateQuerySnapshot> {
+    // Build the base query filters from the Query instance
+    const filters: any = {};
+
+    // Access protected properties through the query instance
+    const whereClause = (this.query as any).buildWhereClause();
+    const orderByClause = (this.query as any).buildOrderByClause();
+    const startAtClause = (this.query as any).buildStartAtClause();
+    const endAtClause = (this.query as any).buildEndAtClause();
+
+    if (whereClause) filters.where = whereClause;
+    if (orderByClause) filters.orderBy = orderByClause;
+    if ((this.query as any).queryLimit) filters.limit = (this.query as any).queryLimit;
+    if ((this.query as any).queryOffset) filters.offset = (this.query as any).queryOffset;
+    if (startAtClause) filters.startAt = startAtClause;
+    if (endAtClause) filters.endAt = endAtClause;
+
+    // Check if it's a collection group query
+    if (this.query instanceof CollectionGroup) {
+      filters.allDescendants = true;
+    }
+
+    // Run the aggregation query
+    const collectionId = (this.query as any).collectionId;
+    const results = (await runAggregateQuery(collectionId, filters, this.aggregateSpec)) as any[];
+
+    // Parse the results
+    const aggregateFields: { [field: string]: number } = {};
+
+    if (results && results[0] && results[0].result) {
+      const resultData = results[0].result.aggregateFields;
+
+      for (const [alias, value] of Object.entries(resultData)) {
+        const fieldValue = value as any;
+        if (fieldValue.integerValue !== undefined) {
+          aggregateFields[alias] = parseInt(fieldValue.integerValue, 10);
+        } else if (fieldValue.doubleValue !== undefined) {
+          aggregateFields[alias] = fieldValue.doubleValue;
+        } else {
+          aggregateFields[alias] = 0;
+        }
+      }
+    }
+
+    const readTime = results && results[0] && results[0].readTime ? Timestamp.fromDate(new Date(results[0].readTime)) : Timestamp.now();
+
+    return {
+      query: this,
+      readTime,
+      data: () => aggregateFields,
     };
   }
 }
