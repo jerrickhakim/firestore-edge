@@ -348,6 +348,43 @@ function toFirestoreValue(value: any): any {
 }
 
 /**
+ * Helper function to convert plain timestamp objects to Timestamp instances
+ * Handles the case where timestamps come back as { _seconds, _nanoseconds }
+ */
+function convertTimestampObjects(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+
+  // Check if this is a timestamp-like object
+  if (typeof obj === "object" && "_seconds" in obj && "_nanoseconds" in obj) {
+    return new Timestamp(obj._seconds, obj._nanoseconds);
+  }
+
+  // If it's an array, process each element
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertTimestampObjects(item));
+  }
+
+  // If it's a Timestamp instance, return as-is
+  if (obj instanceof Timestamp) {
+    return obj;
+  }
+
+  // If it's a plain object, recursively process its properties
+  if (typeof obj === "object" && obj.constructor === Object) {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = convertTimestampObjects(value);
+    }
+    return result;
+  }
+
+  // Return other types as-is
+  return obj;
+}
+
+/**
  * Convert Firestore field format to JavaScript values
  */
 function fromFirestoreValue(field: any): any {
@@ -365,6 +402,12 @@ function fromFirestoreValue(field: any): any {
     return new Timestamp(Math.floor(ms / 1000), (ms % 1000) * 1000000);
   }
 
+  // Handle plain timestamp objects with _seconds and _nanoseconds
+  // This happens when timestamps come back from certain Firestore API responses
+  if (field._seconds !== undefined && field._nanoseconds !== undefined) {
+    return new Timestamp(field._seconds, field._nanoseconds);
+  }
+
   if (field.arrayValue) {
     return field.arrayValue.values?.map((v: any) => fromFirestoreValue(v)) || [];
   }
@@ -372,6 +415,21 @@ function fromFirestoreValue(field: any): any {
   if (field.mapValue) {
     const result: any = {};
     for (const [key, value] of Object.entries(field.mapValue.fields || {})) {
+      result[key] = fromFirestoreValue(value);
+    }
+    return result;
+  }
+
+  // Handle plain objects that might contain timestamp-like structures
+  if (typeof field === "object" && field !== null && !Array.isArray(field)) {
+    // Check if this looks like a plain timestamp object
+    if ("_seconds" in field && "_nanoseconds" in field) {
+      return new Timestamp(field._seconds, field._nanoseconds);
+    }
+
+    // Recursively process object properties to find timestamps
+    const result: any = {};
+    for (const [key, value] of Object.entries(field)) {
       result[key] = fromFirestoreValue(value);
     }
     return result;
@@ -416,7 +474,8 @@ async function getDocument(collection: string, docId: string) {
     result[key] = fromFirestoreValue(value);
   }
 
-  return result;
+  // Ensure all timestamp-like objects are properly converted
+  return convertTimestampObjects(result);
 }
 
 /**
@@ -628,7 +687,8 @@ async function listDocuments(collection: string, pageSize = 100, pageToken?: str
       for (const [key, value] of Object.entries(doc.fields || {})) {
         result[key] = fromFirestoreValue(value);
       }
-      return result;
+      // Ensure all timestamp-like objects are properly converted
+      return convertTimestampObjects(result);
     }) || [];
 
   return {
@@ -850,7 +910,8 @@ async function queryDocuments(collection: string, filters: any = {}) {
       for (const [key, value] of Object.entries(doc.fields || {})) {
         result[key] = fromFirestoreValue(value);
       }
-      return result;
+      // Ensure all timestamp-like objects are properly converted
+      return convertTimestampObjects(result);
     });
 }
 
@@ -927,7 +988,8 @@ async function queryCollectionGroup(collectionId: string, filters: any = {}) {
       for (const [key, value] of Object.entries(doc.fields || {})) {
         result[key] = fromFirestoreValue(value);
       }
-      return result;
+      // Ensure all timestamp-like objects are properly converted
+      return convertTimestampObjects(result);
     });
 }
 
@@ -1321,12 +1383,15 @@ export class Transaction {
       data[key] = fromFirestoreValue(value);
     }
 
+    // Ensure all timestamp-like objects are properly converted
+    const convertedData = convertTimestampObjects(data);
+
     return {
       id: documentRef.id,
       exists: true,
       ref: documentRef,
-      data: () => data,
-      get: (fieldPath: string) => data[fieldPath],
+      data: () => convertedData,
+      get: (fieldPath: string) => convertedData[fieldPath],
       createTime: doc.createTime ? Timestamp.fromDate(new Date(doc.createTime)) : undefined,
       updateTime: doc.updateTime ? Timestamp.fromDate(new Date(doc.updateTime)) : undefined,
     };
@@ -1511,12 +1576,15 @@ export class DocumentReference {
 
     const data = await getDocument(this.collectionPath, this.docId);
 
+    // Ensure all timestamp-like objects are properly converted
+    const convertedData = convertTimestampObjects(data);
+
     return {
       id: this.docId,
-      exists: data !== null,
+      exists: convertedData !== null,
       ref: this,
-      data: () => data,
-      get: (fieldPath: string) => data?.[fieldPath],
+      data: () => convertedData,
+      get: (fieldPath: string) => convertedData?.[fieldPath],
     };
   }
 
@@ -1684,12 +1752,14 @@ export class Query {
 
     const docs: QueryDocumentSnapshot[] = documents.map((doc: any) => {
       const ref = new DocumentReference(this.collectionId, doc.id, this._firestore);
+      // Ensure all timestamp-like objects are properly converted
+      const convertedDoc = convertTimestampObjects(doc);
       return {
         id: doc.id,
         exists: true,
         ref,
-        data: () => doc,
-        get: (fieldPath: string) => doc[fieldPath],
+        data: () => convertedDoc,
+        get: (fieldPath: string) => convertedDoc[fieldPath],
         createTime: Timestamp.now(),
         updateTime: Timestamp.now(),
         readTime: Timestamp.now(),
@@ -1920,12 +1990,14 @@ export class CollectionGroup extends Query {
 
     const docs: QueryDocumentSnapshot[] = documents.map((doc: any) => {
       const ref = new DocumentReference(this.collectionId, doc.id, this._firestore);
+      // Ensure all timestamp-like objects are properly converted
+      const convertedDoc = convertTimestampObjects(doc);
       return {
         id: doc.id,
         exists: true,
         ref,
-        data: () => doc,
-        get: (fieldPath: string) => doc[fieldPath],
+        data: () => convertedDoc,
+        get: (fieldPath: string) => convertedDoc[fieldPath],
         createTime: Timestamp.now(),
         updateTime: Timestamp.now(),
         readTime: Timestamp.now(),
@@ -2057,12 +2129,15 @@ export class Firestore {
         data[key] = fromFirestoreValue(value);
       }
 
+      // Ensure all timestamp-like objects are properly converted
+      const convertedData = convertTimestampObjects(data);
+
       return {
         id: ref.id,
         exists: true,
         ref,
-        data: () => data,
-        get: (fieldPath: string) => data[fieldPath],
+        data: () => convertedData,
+        get: (fieldPath: string) => convertedData[fieldPath],
         createTime: doc.createTime ? Timestamp.fromDate(new Date(doc.createTime)) : undefined,
         updateTime: doc.updateTime ? Timestamp.fromDate(new Date(doc.updateTime)) : undefined,
         readTime: doc.readTime ? Timestamp.fromDate(new Date(doc.readTime)) : undefined,
